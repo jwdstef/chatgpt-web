@@ -51,6 +51,6 @@ COPY --from=frontend /app/dist /app/public
 
 COPY --from=backend /app/build /app/build
 
-EXPOSE 3002
+EXPOSE 3003
 
 CMD ["pnpm", "run", "prod"]
