@@ -2,19 +2,33 @@ import type { App } from 'vue'
 import type { RouteRecordRaw } from 'vue-router'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { setupPageGuard } from './permission'
-import { ChatLayout } from '@/views/chat/layout'
+// import { ChatLayout } from '@/views/chat/layout'
+import { PMChatLayout } from '@/views/pm/layout'
 
 const routes: RouteRecordRaw[] = [
+  // {
+  //   path: '/',
+  //   name: 'Root',
+  //   component: ChatLayout,
+  //   redirect: '/chat',
+  //   children: [
+  //     {
+  //       path: '/chat/:uuid?',
+  //       name: 'Chat',
+  //       component: () => import('@/views/chat/index.vue'),
+  //     },
+  //   ],
+  // },
   {
     path: '/',
-    name: 'Root',
-    component: ChatLayout,
-    redirect: '/chat',
+    name: 'PM',
+    component: PMChatLayout,
+    redirect: '/pm',
     children: [
       {
-        path: '/chat/:uuid?',
+        path: '/pm/:uuid?',
         name: 'Chat',
-        component: () => import('@/views/chat/index.vue'),
+        component: () => import('@/views/pm/index.vue'),
       },
     ],
   },
