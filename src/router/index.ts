@@ -21,13 +21,13 @@ const routes: RouteRecordRaw[] = [
   // },
   {
     path: '/',
-    name: 'PM',
+    name: 'Root',
     component: PMChatLayout,
     redirect: '/pm',
     children: [
       {
         path: '/pm/:uuid?',
-        name: 'Chat',
+        name: 'PM',
         component: () => import('@/views/pm/index.vue'),
       },
     ],
