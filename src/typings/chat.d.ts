@@ -1,5 +1,16 @@
 declare namespace Chat {
 
+	interface PMChat {
+		dateTime: string
+		text: string
+		textData: {  }
+		inversion?: boolean
+		error?: boolean
+		loading?: boolean
+		conversationOptions?: ConversationRequest | null
+		requestOptions: { prompt: string; options?: ConversationRequest | null }
+	}
+
 	interface Chat {
 		dateTime: string
 		text: string
