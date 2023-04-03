@@ -676,28 +676,28 @@ onUnmounted(() => {
               <SvgIcon icon="ri:chat-history-line"/>
             </span>
 					</HoverButton>
-					<NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption">
-						<template #default="{ handleInput, handleBlur, handleFocus }">
-							<NInput
-								ref="inputRef"
-								v-model:value="prompt"
-								type="textarea"
-								:placeholder="placeholder"
-								:autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }"
-								@input="handleInput"
-								@focus="handleFocus"
-								@blur="handleBlur"
-								@keypress="handleEnter"
-							/>
-						</template>
-					</NAutoComplete>
-					<NButton type="primary" :disabled="buttonDisabled" @click="handleSubmit">
-						<template #icon>
-              <span class="dark:text-black">
-                <SvgIcon icon="ri:send-plane-fill"/>
-              </span>
-						</template>
-					</NButton>
+<!--					<NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption">-->
+<!--						<template #default="{ handleInput, handleBlur, handleFocus }">-->
+<!--							<NInput-->
+<!--								ref="inputRef"-->
+<!--								v-model:value="prompt"-->
+<!--								type="textarea"-->
+<!--								:placeholder="placeholder"-->
+<!--								:autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }"-->
+<!--								@input="handleInput"-->
+<!--								@focus="handleFocus"-->
+<!--								@blur="handleBlur"-->
+<!--								@keypress="handleEnter"-->
+<!--							/>-->
+<!--						</template>-->
+<!--					</NAutoComplete>-->
+<!--					<NButton type="primary" :disabled="buttonDisabled" @click="handleSubmit">-->
+<!--						<template #icon>-->
+<!--              <span class="dark:text-black">-->
+<!--                <SvgIcon icon="ri:send-plane-fill"/>-->
+<!--              </span>-->
+<!--						</template>-->
+<!--					</NButton>-->
 				</div>
 			</div>
 		</footer>

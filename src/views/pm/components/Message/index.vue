@@ -82,6 +82,7 @@ function handleRegenerate() {
 
 <template>
   <div
+		v-if="!inversion"
     ref="messageRef"
     class="flex w-full mb-6 overflow-hidden"
     :class="[{ 'flex-row-reverse': inversion }]"

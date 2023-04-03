@@ -12,7 +12,14 @@ const chatStore = useChatStore()
 
 const title = ref<string>('')
 const prompt = ref<string>('')
-const checkedValues = ref<string[]>([])
+const checkedValues = ref({
+	overview: false,
+	target: false,
+	userJourneys: false,
+	funcOverview: false,
+	funcDetailOverview: false,
+})
+const demandDesc = ref<string>('')
 
 const {isMobile} = useBasicLayout()
 const show = ref(false)
@@ -52,9 +59,7 @@ const mobileSafeArea = computed(() => {
 const mitt = inject('mitt');
 
 function emitData() {
-	console.log(checkedValues)
-	console.log(checkedValues.value)
-	// mitt.emit('data', {message: title.value, paramObj: {title: title.value, checkedValues: checkedValues.value}});
+	mitt.emit('data', {message: title.value, paramObj: {title: title.value, checkedValues: checkedValues.value, demandDesc: demandDesc.value}});
 }
 
 watch(
@@ -101,33 +106,31 @@ watch(
 						<div style="margin-top: 20px">
 							需求描述
 							<NInput
-								v-model:value="prompt"
+								v-model:value="demandDesc"
 								type="textarea"
 								:autosize="{ minRows: 4, maxRows: isMobile ? 4 : 8 }"
 							/>
 						</div>
 						<div style="margin-top: 20px">
-							内容包含{{checkedValues}}
+							内容包含
 							<br>
-							<NCheckboxGroup v-model:value="checkedValues">
-								<NGrid x-gap="12" :y-gap="8" :cols="2">
-									<NGi>
-										<NCheckbox value="概述" label="概述"/>
-									</NGi>
-									<NGi>
-										<NCheckbox value="目标" label="目标"/>
-									</NGi>
-									<NGi>
-										<NCheckbox value="用户使用旅程" label="用户使用旅程"/>
-									</NGi>
-									<NGi>
-										<NCheckbox value="功能概述" label="功能概述"/>
-									</NGi>
-									<NGi>
-										<NCheckbox value="功能详细描述" label="功能详细描述"/>
-									</NGi>
-								</NGrid>
-							</NCheckboxGroup>
+							<NGrid x-gap="12" :y-gap="8" :cols="2">
+								<NGi>
+									<NCheckbox v-model:checked="checkedValues.overview" value="概述" label="概述"/>
+								</NGi>
+								<NGi>
+									<NCheckbox v-model:checked="checkedValues.target" value="目标" label="目标"/>
+								</NGi>
+								<NGi>
+									<NCheckbox v-model:checked="checkedValues.userJourneys" value="用户使用旅程" label="用户使用旅程"/>
+								</NGi>
+								<NGi>
+									<NCheckbox v-model:checked="checkedValues.funcOverview" value="功能概述" label="功能概述"/>
+								</NGi>
+								<NGi>
+									<NCheckbox v-model:checked="checkedValues.funcDetailOverview" value="功能详细描述" label="功能详细描述"/>
+								</NGi>
+							</NGrid>
 
 							<NButton style="margin-top: 15px" block strong secondary type="success" @click="emitData">
 								提交
