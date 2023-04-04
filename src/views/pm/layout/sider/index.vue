@@ -88,7 +88,9 @@ watch(
 	>
 		<div class="flex flex-col h-full" :style="mobileSafeArea">
 			<main class="flex flex-col flex-1 min-h-0">
-				<div style="height:90%;margin: 30px;border-radius: 20px 20px 0px 0px;background-color: #282c35">
+				<div style="height:90%;margin: 30px;border-radius: 20px 20px 0px 0px;
+				padding-bottom: 20px;
+				background-color: #282c35; overflow-y: auto">
 					<div style="margin-top: 50px; text-align: center">
             <span style="font-size: 20px;background-color: #3c3b4d;font-weight:normal">
               &nbsp;&nbsp;&nbsp;&nbsp; P R D 生 成 &nbsp;&nbsp;&nbsp;&nbsp;
