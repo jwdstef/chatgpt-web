@@ -13,11 +13,11 @@ const chatStore = useChatStore()
 const title = ref<string>('')
 const prompt = ref<string>('')
 const checkedValues = ref({
-	overview: false,
-	target: false,
-	userJourneys: false,
-	funcOverview: false,
-	funcDetailOverview: false,
+	概述: false,
+	目标: false,
+	用户使用流程: false,
+	功能概述: false,
+	功能详细描述: false,
 })
 const demandDesc = ref<string>('')
 
@@ -116,19 +116,19 @@ watch(
 							<br>
 							<NGrid x-gap="12" :y-gap="8" :cols="2">
 								<NGi>
-									<NCheckbox v-model:checked="checkedValues.overview" value="概述" label="概述"/>
+									<NCheckbox v-model:checked="checkedValues.概述" value="概述" label="概述"/>
 								</NGi>
 								<NGi>
-									<NCheckbox v-model:checked="checkedValues.target" value="目标" label="目标"/>
+									<NCheckbox v-model:checked="checkedValues.目标" value="目标" label="目标"/>
 								</NGi>
 								<NGi>
-									<NCheckbox v-model:checked="checkedValues.userJourneys" value="用户使用旅程" label="用户使用旅程"/>
+									<NCheckbox v-model:checked="checkedValues.用户使用流程" value="用户使用流程" label="用户使用流程"/>
 								</NGi>
 								<NGi>
-									<NCheckbox v-model:checked="checkedValues.funcOverview" value="功能概述" label="功能概述"/>
+									<NCheckbox v-model:checked="checkedValues.功能概述" value="功能概述" label="功能概述"/>
 								</NGi>
 								<NGi>
-									<NCheckbox v-model:checked="checkedValues.funcDetailOverview" value="功能详细描述" label="功能详细描述"/>
+									<NCheckbox v-model:checked="checkedValues.功能详细描述" value="功能详细描述" label="功能详细描述"/>
 								</NGi>
 							</NGrid>
 

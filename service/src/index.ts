@@ -23,10 +23,21 @@ router.post('/chat-process', [auth, limiter], async (req, res) => {
   res.setHeader('Content-type', 'application/octet-stream')
 
   try {
-    const { prompt, options = {}, systemMessage } = req.body as RequestProps
+    const { prompt, textData = {}, options = {}, systemMessage } = req.body as RequestProps
     let firstChunk = true
+		let checkedList = []
+		for (const key in textData.checkedValues) {
+			if (textData.checkedValues[key]) {
+				checkedList.push(key)
+			}
+		}
+		let postData = `请确认我的以下请求。请以产品经理的身份给我答复。我将要求提供主题，你将帮助我为它写一份 PRD。\n' +
+			'功能:${textData.title},\n' +
+			'需求描述:${textData.demandDesc},\n' +
+			'包含以下内容:\n' +
+			'${checkedList.join(',')}`
     await chatReplyProcess({
-      message: prompt,
+      message: postData,
       lastContext: options,
       process: (chat: ChatMessage) => {
         res.write(firstChunk ? JSON.stringify(chat) : `\n${JSON.stringify(chat)}`)

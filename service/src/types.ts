@@ -2,6 +2,7 @@ import type { FetchFn } from 'chatgpt'
 
 export interface RequestProps {
   prompt: string
+	textData? :any
   options?: ChatContext
   systemMessage: string
 }
