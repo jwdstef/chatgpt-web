@@ -55,7 +55,7 @@ dataSources.value.forEach((item, index) => {
 		updateChatSome(+uuid, index, {loading: false})
 })
 
-const mitt = inject('mitt');
+const mitt:any = inject('mitt');
 mitt.on('data', (data: { message: string, paramObj: object }) => {
 	console.log(data)
 	onConversationEmit(data.message, data.paramObj)

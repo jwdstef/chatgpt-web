@@ -56,7 +56,7 @@ const mobileSafeArea = computed(() => {
 })
 
 // mitt 相关
-const mitt = inject('mitt');
+const mitt:any = inject('mitt');
 
 function emitData() {
 	mitt.emit('data', {message: title.value, paramObj: {title: title.value, checkedValues: checkedValues.value, demandDesc: demandDesc.value}});
