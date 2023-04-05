@@ -17,7 +17,7 @@ export function defaultSetting(): UserState {
     userInfo: {
       avatar: 'https://s1.ax1x.com/2023/03/22/ppa2sI0.jpg',
       name: 'Jwdstef',
-      description: 'CIG-CTO Office',
+      description: '奥创·QQ:25463204',
     },
   }
 }
