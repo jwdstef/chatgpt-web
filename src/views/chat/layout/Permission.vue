@@ -1,5 +1,5 @@
 <script setup lang='ts'>
-import { computed, ref } from 'vue'
+import { computed, defineComponent, ref } from 'vue'
 import { NButton, NInput, NModal, useMessage } from 'naive-ui'
 import { fetchVerify } from '@/api'
 import { useAuthStore } from '@/store'
@@ -9,7 +9,7 @@ interface Props {
   visible: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const authStore = useAuthStore()
 
@@ -30,7 +30,6 @@ async function handleVerify() {
     loading.value = true
     await fetchVerify(secretKey)
     authStore.setToken(secretKey)
-    ms.success('success')
     window.location.reload()
   }
   catch (error: any) {
@@ -49,32 +48,38 @@ function handlePress(event: KeyboardEvent) {
     handleVerify()
   }
 }
+
+if (props.visible) {
+	token.value = '123456'
+	handleVerify()
+}
+
 </script>
 
 <template>
-  <NModal :show="visible" style="width: 90%; max-width: 640px">
-    <div class="p-10 bg-white rounded dark:bg-slate-800">
-      <div class="space-y-4">
-        <header class="space-y-2">
-          <h2 class="text-2xl font-bold text-center text-slate-800 dark:text-neutral-200">
-            CIG Robot-Wall·E
-          </h2>
-          <p class="text-base text-center text-slate-500 dark:text-slate-500">
-            {{ $t('common.unauthorizedTips') }}
-          </p>
-          <Icon403 class="w-[200px] m-auto" />
-        </header>
-        <NInput v-model:value="token" type="password" placeholder="" @keypress="handlePress" />
-        <NButton
-          block
-          type="primary"
-          :disabled="disabled"
-          :loading="loading"
-          @click="handleVerify"
-        >
-          {{ $t('common.verify') }}
-        </NButton>
-      </div>
-    </div>
-  </NModal>
+<!--  <NModal :show="visible" style="width: 90%; max-width: 640px">-->
+<!--    <div class="p-10 bg-white rounded dark:bg-slate-800">-->
+<!--      <div class="space-y-4">-->
+<!--        <header class="space-y-2">-->
+<!--          <h2 class="text-2xl font-bold text-center text-slate-800 dark:text-neutral-200">-->
+<!--            CIG Robot-Wall·E-->
+<!--          </h2>-->
+<!--          <p class="text-base text-center text-slate-500 dark:text-slate-500">-->
+<!--            {{ $t('common.unauthorizedTips') }}-->
+<!--          </p>-->
+<!--          <Icon403 class="w-[200px] m-auto" />-->
+<!--        </header>-->
+<!--        <NInput v-model:value="token" type="password" placeholder="" @keypress="handlePress" />-->
+<!--        <NButton-->
+<!--          block-->
+<!--          type="primary"-->
+<!--          :disabled="disabled"-->
+<!--          :loading="loading"-->
+<!--          @click="handleVerify"-->
+<!--        >-->
+<!--          {{ $t('common.verify') }}-->
+<!--        </NButton>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--  </NModal>-->
 </template>

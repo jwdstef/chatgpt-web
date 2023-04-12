@@ -49,3 +49,9 @@ export function fetchVerify<T>(token: string) {
     data: { token },
   })
 }
+
+export function sendVerifyMail<T>() {
+	return post<T>({
+		url: 'send-verify-mail'
+	})
+}
