@@ -99,7 +99,7 @@ async function sign_in_user() {
 
 <template>
 	<div class="flex h-full">
-		<div style="width: 500px;margin-top: 10%" class="px-4 m-auto space-y-4 text-center max-[400px]">
+		<div style="width: 500px;margin-top: 10%" class="px-4 m-auto space-y-4 text-left max-[400px]">
 			<NCard>
 				<NTabs
 					class="card-tabs"
