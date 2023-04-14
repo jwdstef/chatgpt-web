@@ -3,12 +3,12 @@ import { computed, ref } from 'vue'
 import { NButton, NInput, NPopconfirm, NSelect, useMessage } from 'naive-ui'
 import type { Language, Theme } from '@/store/modules/app/helper'
 import { SvgIcon } from '@/components/common'
-import { useAppStore, useUserStore } from '@/store'
+import {useAppStore, useAuthStore, useUserStore} from '@/store'
 import type { UserInfo } from '@/store/modules/user/helper'
 import { getCurrentDate } from '@/utils/functions'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
-
+const authStore = useAuthStore()
 const appStore = useAppStore()
 const userStore = useUserStore()
 
@@ -118,6 +118,12 @@ function handleImportButtonClick(): void {
   if (fileInput)
     fileInput.click()
 }
+
+function logout() {
+	authStore.removeUserEmail()
+	authStore.removeAccessToken()
+	window.location.href = '/'
+}
 </script>
 
 <template>
@@ -218,6 +224,12 @@ function handleImportButtonClick(): void {
           {{ $t('common.reset') }}
         </NButton>
       </div>
+			<div class="flex items-center space-x-4">
+				<span class="flex-shrink-0 w-[100px]">登出</span>
+				<NButton size="small" @click="logout">
+					登出
+				</NButton>
+			</div>
     </div>
   </div>
 </template>
