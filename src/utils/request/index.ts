@@ -1,6 +1,8 @@
 import type { AxiosProgressEvent, AxiosResponse, GenericAbortSignal } from 'axios'
 import request from './axios'
 import { useAuthStore } from '@/store'
+import {getAccessToken} from "@/store/modules/auth/access_token";
+import {getUserEmail} from "@/store/modules/auth/user";
 
 export interface HttpOption {
   url: string
@@ -25,13 +27,20 @@ function http<T = any>(
   const successHandler = (res: AxiosResponse<Response<T>>) => {
     const authStore = useAuthStore()
 
-    if (res.data.status === 'Success' || typeof res.data === 'string')
+    if (res.data.status === 'Success' || res.data.status === 'Fail' || typeof res.data === 'string')
       return res.data
 
     if (res.data.status === 'Unauthorized') {
       authStore.removeToken()
-      window.location.reload()
+			window.location.href = '/#login'
     }
+
+		if (res.data.status === 'NoLogin') {
+			authStore.removeToken()
+			authStore.removeAccessToken()
+			authStore.removeUserEmail()
+			window.location.href = '/#login'
+		}
 
     return Promise.reject(res.data)
   }
@@ -53,12 +62,15 @@ function http<T = any>(
 }
 
 export function get<T = any>(
-  { url, data, method = 'GET', onDownloadProgress, signal, beforeRequest, afterRequest }: HttpOption,
+  { url, data, method = 'GET', headers, onDownloadProgress, signal, beforeRequest, afterRequest }: HttpOption,
 ): Promise<Response<T>> {
+	const accessToken = getAccessToken(); // 获取access token
+	headers = { ...headers, access_token: accessToken, email:getUserEmail() }; // 将access token添加到请求头中
   return http<T>({
     url,
     method,
     data,
+		headers,
     onDownloadProgress,
     signal,
     beforeRequest,
@@ -69,6 +81,8 @@ export function get<T = any>(
 export function post<T = any>(
   { url, data, method = 'POST', headers, onDownloadProgress, signal, beforeRequest, afterRequest }: HttpOption,
 ): Promise<Response<T>> {
+	const accessToken = getAccessToken(); // 获取access token
+	headers = { ...headers, access_token: accessToken , email:getUserEmail()}; // 将access token添加到请求头中
   return http<T>({
     url,
     method,

@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { getToken, removeToken, setToken } from './helper'
 import { store } from '@/store'
 import { fetchSession } from '@/api'
+import {getAccessToken, removeAccessToken, setAccessToken} from "@/store/modules/auth/access_token";
+import {getUserEmail, removeUserEmail, setUserEmail} from "@/store/modules/auth/user";
 
 interface SessionResponse {
   auth: boolean
@@ -14,14 +16,17 @@ export interface AuthState {
 }
 
 export const useAuthStore = defineStore('auth-store', {
-  state: (): AuthState => ({
+  state: (): { access_token: any | null; session: null; email: any | null; token: any | null } => ({
     token: getToken(),
+		access_token: getAccessToken(),
+		email: getUserEmail(),
     session: null,
   }),
 
   getters: {
     isChatGPTAPI(state): boolean {
-      return state.session?.model === 'ChatGPTAPI'
+      // @ts-ignore
+			return state.session?.model === 'ChatGPTAPI'
     },
   },
 
@@ -29,13 +34,42 @@ export const useAuthStore = defineStore('auth-store', {
     async getSession() {
       try {
         const { data } = await fetchSession<SessionResponse>()
-        this.session = { ...data }
+        // @ts-ignore
+				this.session = { ...data }
         return Promise.resolve(data)
       }
       catch (error) {
         return Promise.reject(error)
       }
     },
+
+		setAccessToken(token: string) {
+			this.access_token = token
+			setAccessToken(token)
+		},
+
+		setUserEmail(email: string) {
+			this.email = email
+			setUserEmail(email)
+		},
+
+		removeUserEmail() {
+			this.email = undefined
+			removeUserEmail()
+		},
+
+		getUserEmail() {
+			return getUserEmail()
+		},
+
+		getAccessToken() {
+			return getAccessToken()
+		},
+
+		removeAccessToken() {
+			this.access_token = undefined
+			removeAccessToken()
+		},
 
     setToken(token: string) {
       this.token = token

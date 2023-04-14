@@ -2,15 +2,18 @@ import express from 'express'
 import type { RequestProps } from './types'
 import type { ChatMessage } from './chatgpt'
 import { chatConfig, chatReplyProcess, currentModel } from './chatgpt'
-import { auth } from './middleware/auth'
+import {auth, checkToken} from './middleware/auth'
 import { limiter } from './middleware/limiter'
 import { isNotEmptyString } from './utils/is'
 import {sendVerifyMail, sign_up} from './login'
-import {find_user_by_email} from "./user";
+import {find_user_by_email, find_user_by_email_password} from "./user";
 import {sendResponse} from "./utils";
+import {generateToken} from "./utils/token";
+import {redisSet} from "./utils/redis_tool";
 
 const app = express()
 const router = express.Router()
+router.use(checkToken);
 
 app.use(express.static('public'))
 app.use(express.json())
@@ -86,7 +89,13 @@ router.post('/verify', async (req, res) => {
 router.post('/send-verify-mail', async (req, res) => {
 	try{
 		console.log(req.body)
-		await sendVerifyMail(req.body.to_email)
+		const user_data = await find_user_by_email(req.body.to_email)
+		if (user_data){
+			res.send({ status: 'Success', message: '用户已注册'})
+		} else {
+			await sendVerifyMail(req.body.to_email)
+			res.send({ status: 'Success', message: ''})
+		}
 	} catch (error) {
 		res.send({ status: 'Fail', message: error.message, data: null })
 	}
@@ -95,8 +104,17 @@ router.post('/send-verify-mail', async (req, res) => {
 router.post('/sign-up', async (req, res) =>{
 	try{
 		const { to_email, verify_code, password, confirm_password} = req.body
-		await sign_up(to_email, verify_code, password, confirm_password)
-		res.send({ status: 'Success', message: ''})
+		const user_data = await find_user_by_email(to_email)
+		if (user_data){
+			res.send({ status: 'Fail', message: '用户已注册'})
+		} else {
+			if (password !== confirm_password) {
+				res.send({ status: 'Fail', message: '密码与确认密码不一致'})
+			}
+			const data = await sign_up(to_email, verify_code, password, confirm_password)
+			res.send(data)
+		}
+
 	} catch (error) {
 		res.send({ status: 'Fail', message: error.message, data: null })
 	}
@@ -105,19 +123,19 @@ router.post('/sign-up', async (req, res) =>{
 router.post('/sign-in', async (req, res)=>{
 	try{
 		const {email, password} = req.body
-		console.log(1111111111)
 
-		const user_data = await find_user_by_email(email, password)
-		console.log(user_data)
+		const user_data = await find_user_by_email_password(email, password)
 		if (user_data){
-			return res.send({status:'Success', message: ""})
+			const token = generateToken(email)
+			// 将 token 放到 redis 存 7 天
+			redisSet('token:' + email, token, 60 * 60 * 24 * 7)
+			return res.send({status:'Success', message: token})
 		}
 		return res.send({status:'Fail', message: "用户不存在"})
 	}catch (error) {
 		res.send({ status: 'Fail', message: error.message, data: null })
 	}
 })
-
 app.use('', router)
 app.use('/api', router)
 app.set('trust proxy', 1)

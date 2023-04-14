@@ -3,9 +3,19 @@ import {NButton, NForm, NFormItem, NInput, NCard, NTabs, NTabPane, NFormItemRow,
 import {ref} from "vue";
 import {sendVerifyMail, user_sign_in, user_sign_up} from "@/api";
 import {useRouter} from "vue-router";
+import {useAuthStore} from "@/store";
 
 const ms = useMessage()
 const router = useRouter()
+const authStore = useAuthStore()
+
+const token = authStore.getAccessToken()
+const user_email = authStore.getUserEmail()
+
+if (token && user_email) {
+	router.push({name:'Chat'})
+}
+
 const sign_in_form = ref({
 	email:'',
 	password: '',
@@ -44,7 +54,15 @@ let login_tab = ref<string>('signin')
 
 
 function sendCode() {
-	sendVerifyMail(sign_up_form.value.to_email)
+	sendVerifyMail<any>(sign_up_form.value.to_email)
+		.then(data=>{
+		console.log(data)
+		if (data.status === 'Fail') {
+			ms.error(data.message ?? 'error')
+		}
+	}).catch(error => {
+		console.error(error);
+	});
 }
 
 function sign_up_user() {
@@ -53,6 +71,8 @@ function sign_up_user() {
 			sign_in_form.value.email = sign_up_form.value.to_email
 			sign_in_form.value.password = sign_up_form.value.password
 			login_tab.value = 'signin'
+		}else{
+			ms.error(data.message ?? 'error')
 		}
 	})
 }
@@ -62,6 +82,8 @@ async function sign_in_user() {
 		.then(data => {
 			if(data.status === 'Success') {
 				sign_in_loading.value = true
+				authStore.setAccessToken(data.message ?? '')
+				authStore.setUserEmail(sign_in_form.value.email)
 				router.push({name:'Chat'})
 			} else {
 				ms.error(data.message ?? 'error')

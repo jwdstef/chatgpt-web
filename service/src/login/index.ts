@@ -56,13 +56,15 @@ async function chatReplyProcess(options: RequestOptions) {
 }
 
 async function sendVerifyMail(toEmail) {
-	sendMail(toEmail)
+	try{
+		sendMail(toEmail)
+	} catch (error) {
+		console.log(error)
+	}
 }
 
 async function sign_up(email, verify_code, password, confirm_password){
-	if (password !== confirm_password) {
-		return sendResponse({type:'Fail', message:"密码与确认密码不一致"})
-	}
+
 	console.log('执行 redis get emailVerifyCode:' + email)
 
 	await redisGet('emailVerifyCode:' + email).then(redis_code=>{
@@ -71,7 +73,7 @@ async function sign_up(email, verify_code, password, confirm_password){
 		if (String(verify_code) !== String(redis_code)) {
 			console.log(verify_code)
 			console.log(redis_code)
-			return sendResponse({type:'Fail', message:"验证码错误"})
+			return { status: 'Fail', message: "验证码错误"}
 		}
 
 		const vail_result = user_schema.validate({
@@ -79,11 +81,12 @@ async function sign_up(email, verify_code, password, confirm_password){
 			password: password
 		})
 		if (vail_result.error){
-			return sendResponse({type:'Fail', message: "格式验证失败:"+vail_result.error})
+			return { status: 'Fail', message: "格式验证失败:"+vail_result.error}
 		}
 
 		// 这里写入库的逻辑
 		add_user(email, password)
+		return { status: 'Fail', message: '密码与确认密码不一致'}
 	})
 
 }
