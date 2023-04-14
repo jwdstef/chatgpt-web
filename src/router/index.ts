@@ -19,9 +19,9 @@ const routes: RouteRecordRaw[] = [
     ],
   },
 	{
-		path: '/singUp',
-		name: 'singUp',
-		component: () => import('@/views/login/sign_up.vue'),
+		path: '/login',
+		name: 'Login',
+		component: () => import('@/views/login/index.vue'),
 	},
 
   {

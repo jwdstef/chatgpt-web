@@ -5,7 +5,7 @@ import { chatConfig, chatReplyProcess, currentModel } from './chatgpt'
 import { auth } from './middleware/auth'
 import { limiter } from './middleware/limiter'
 import { isNotEmptyString } from './utils/is'
-import { sendVerifyMail } from './login/sign_up'
+import {sendVerifyMail, sign_up} from './login'
 
 const app = express()
 const router = express.Router()
@@ -83,7 +83,18 @@ router.post('/verify', async (req, res) => {
 
 router.post('/send-verify-mail', async (req, res) => {
 	try{
-		await sendVerifyMail()
+		console.log(req.body)
+		await sendVerifyMail(req.body.to_email)
+	} catch (error) {
+		res.send({ status: 'Fail', message: error.message, data: null })
+	}
+})
+
+router.post('/sign-up', async (req, res) =>{
+	try{
+		const { to_email, verify_code, password, confirm_password} = req.body
+		await sign_up(to_email, verify_code, password, confirm_password)
+		res.send({ status: 'Success', message: ''})
 	} catch (error) {
 		res.send({ status: 'Fail', message: error.message, data: null })
 	}

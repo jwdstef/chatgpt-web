@@ -50,8 +50,18 @@ export function fetchVerify<T>(token: string) {
   })
 }
 
-export function sendVerifyMail<T>() {
+export function sendVerifyMail<T>(to_email: string) {
 	return post<T>({
-		url: 'send-verify-mail'
+		url: '/send-verify-mail',
+		data: {
+			to_email: to_email
+		}
+	})
+}
+
+export function user_sign_up<T>(sign_user_data:any) {
+	return post<T>({
+		url: '/sign-up',
+		data: sign_user_data
 	})
 }

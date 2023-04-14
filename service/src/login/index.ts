@@ -4,6 +4,9 @@ import {isNotEmptyString} from "../utils/is";
 import {sendResponse} from "../utils";
 import {ApiModel} from "../types";
 import {sendMail} from "../utils/email";
+import {redisGet} from "../utils/redis_tool";
+import {add_user} from "../user";
+import {user_schema} from "../schema/user";
 
 const timeoutMs: number = !isNaN(+process.env.TIMEOUT_MS) ? +process.env.TIMEOUT_MS : 30 * 1000
 let apiModel: ApiModel
@@ -52,8 +55,38 @@ async function chatReplyProcess(options: RequestOptions) {
 	}
 }
 
-async function sendVerifyMail() {
-	sendMail()
+async function sendVerifyMail(toEmail) {
+	sendMail(toEmail)
 }
 
-export { sendVerifyMail }
+async function sign_up(email, verify_code, password, confirm_password){
+	if (password !== confirm_password) {
+		return sendResponse({type:'Fail', message:"密码与确认密码不一致"})
+	}
+	console.log('执行 redis get emailVerifyCode:' + email)
+
+	await redisGet('emailVerifyCode:' + email).then(redis_code=>{
+		console.log(verify_code)
+		console.log(redis_code)
+		if (String(verify_code) !== String(redis_code)) {
+			console.log(verify_code)
+			console.log(redis_code)
+			return sendResponse({type:'Fail', message:"验证码错误"})
+		}
+
+		const vail_result = user_schema.validate({
+			email: email,
+			password: password
+		})
+		if (vail_result.error){
+			return sendResponse({type:'Fail', message: "格式验证失败:"+vail_result.error})
+		}
+
+		// 这里写入库的逻辑
+		add_user(email, password)
+	})
+
+}
+
+
+export { sendVerifyMail, sign_up }
