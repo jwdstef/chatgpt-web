@@ -65,3 +65,10 @@ export function user_sign_up<T>(sign_user_data:any) {
 		data: sign_user_data
 	})
 }
+
+export function user_sign_in<T>(sign_user_data:any) {
+	return post<T>({
+		url: '/sign-in',
+		data: sign_user_data
+	})
+}

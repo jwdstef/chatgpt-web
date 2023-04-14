@@ -6,6 +6,8 @@ import { auth } from './middleware/auth'
 import { limiter } from './middleware/limiter'
 import { isNotEmptyString } from './utils/is'
 import {sendVerifyMail, sign_up} from './login'
+import {find_user_by_email} from "./user";
+import {sendResponse} from "./utils";
 
 const app = express()
 const router = express.Router()
@@ -96,6 +98,22 @@ router.post('/sign-up', async (req, res) =>{
 		await sign_up(to_email, verify_code, password, confirm_password)
 		res.send({ status: 'Success', message: ''})
 	} catch (error) {
+		res.send({ status: 'Fail', message: error.message, data: null })
+	}
+})
+
+router.post('/sign-in', async (req, res)=>{
+	try{
+		const {email, password} = req.body
+		console.log(1111111111)
+
+		const user_data = await find_user_by_email(email, password)
+		console.log(user_data)
+		if (user_data){
+			return res.send({status:'Success', message: ""})
+		}
+		return res.send({status:'Fail', message: "用户不存在"})
+	}catch (error) {
 		res.send({ status: 'Fail', message: error.message, data: null })
 	}
 })

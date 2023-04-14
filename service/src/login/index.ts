@@ -5,7 +5,7 @@ import {sendResponse} from "../utils";
 import {ApiModel} from "../types";
 import {sendMail} from "../utils/email";
 import {redisGet} from "../utils/redis_tool";
-import {add_user} from "../user";
+import {add_user, find_user_by_email} from "../user";
 import {user_schema} from "../schema/user";
 
 const timeoutMs: number = !isNaN(+process.env.TIMEOUT_MS) ? +process.env.TIMEOUT_MS : 30 * 1000
@@ -87,6 +87,5 @@ async function sign_up(email, verify_code, password, confirm_password){
 	})
 
 }
-
 
 export { sendVerifyMail, sign_up }
