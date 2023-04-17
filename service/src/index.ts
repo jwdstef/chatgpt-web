@@ -112,6 +112,7 @@ router.post('/sign-up', async (req, res) =>{
 				res.send({ status: 'Fail', message: '密码与确认密码不一致'})
 			}
 			const data = await sign_up(to_email, verify_code, password, confirm_password)
+			console.log(data)
 			res.send(data)
 		}
 

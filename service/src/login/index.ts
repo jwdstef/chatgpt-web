@@ -67,7 +67,7 @@ async function sign_up(email, verify_code, password, confirm_password){
 
 	console.log('执行 redis get emailVerifyCode:' + email)
 
-	await redisGet('emailVerifyCode:' + email).then(redis_code=>{
+	return await redisGet('emailVerifyCode:' + email).then(redis_code=>{
 		console.log(verify_code)
 		console.log(redis_code)
 		if (String(verify_code) !== String(redis_code)) {
@@ -84,9 +84,13 @@ async function sign_up(email, verify_code, password, confirm_password){
 			return { status: 'Fail', message: "格式验证失败:"+vail_result.error}
 		}
 
+		if (password !== confirm_password) {
+			return { status: 'Fail', message: "密码与确认密码不一致"}
+		}
+
 		// 这里写入库的逻辑
 		add_user(email, password)
-		return { status: 'Fail', message: '密码与确认密码不一致'}
+		return { status: 'Success', message: ''}
 	})
 
 }

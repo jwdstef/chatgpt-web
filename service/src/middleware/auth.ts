@@ -25,8 +25,8 @@ import {redisGet} from "../utils/redis_tool";
 function checkToken(req: Request, res: Response, next: NextFunction) {
 	const accessToken = req.headers['access_token'];
 	const email = req.headers['email'];
-
-	if (req.path === '/sign-in') {
+	const not_need_auth = ['/sign-in', '/send-verify-mail', '/sign-up']
+	if (not_need_auth.includes(req.path)) {
 		next()
 		return
 	} else {
