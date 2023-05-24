@@ -24,6 +24,7 @@ const openLongReply = import.meta.env.VITE_GLOB_OPEN_LONG_REPLY === 'true'
 const route = useRoute()
 const dialog = useDialog()
 const ms = useMessage()
+const maxMessage = 10
 
 const chatStore = useChatStore()
 
@@ -56,13 +57,108 @@ dataSources.value.forEach((item, index) => {
     updateChatSome(+uuid, index, { loading: false })
 })
 
+window.postMessage = function (message) {
+	dataSources.value.push({
+		dateTime:new Date().toLocaleString(),
+		text: message.dataStr,
+		inversion: true,
+		error: false,
+		conversationOptions: null,
+		requestOptions: { prompt: 'message', options: null },
+	})
+	let lastText = ''
+	contextList.push({
+		role: "user",
+		content: message.data
+	})
+	if (contextList.length > maxMessage) {
+		contextList.splice(0, contextList.length - maxMessage);
+	}
+	dataSources.value.push({
+		dateTime:new Date().toLocaleString(),
+		text: '',
+		inversion: false,
+		error: false,
+		conversationOptions: null,
+		requestOptions: { prompt: lastText, options: null },
+	})
+	window.sendDataToJava({
+		request: JSON.stringify({key:'query-server-config'}),
+		persistent:false,
+		onSuccess: function(responseData) {
+			let token = JSON.parse(responseData).token
+			oneApiChat(contextList,token).then(response => {
+				const reader = response.body!.getReader(); // 注意这里使用了非空断言
+
+				function readStream() {
+					reader.read().then(({ done, value }) => {
+						if (done) {
+							console.log('流式输出完成');
+							contextList.push({
+								role: "system",
+								content: lastText
+							})
+							if (contextList.length > maxMessage) {
+								contextList.splice(0, contextList.length - maxMessage);
+							}
+							lastText = ''
+							useCopyCode()
+							return;
+						}
+						const data = new TextDecoder().decode(value);
+						const dataList = data.split('data: ')
+						for (let index in dataList){
+							if(dataList[index] !== '') {
+								console.log('dataList[index]',dataList[index])
+								try {
+									const jsonRegex = /"id":"(.*?)","object":"chat\.completion\.chunk","created":\d+,"model":"[^"]+","choices":\[\{"delta":\{"content":"(.*?)"\},"index":\d+,"finish_reason":null}]/;
+									const match = dataList[index].match(jsonRegex);
+									if (match) {
+										const content = match[2];
+										lastText += content.replace(/\\n/g, "\n").replace('\\"', '"');
+										console.log('content:', content)
+										console.log('content.replace',content.replace(/\\n/g, "\n"))
+										console.log(lastText)
+										dataSources.value[dataSources.value.length - 1] = {
+											dateTime:new Date().toLocaleString(),
+											text: lastText,
+											inversion: false,
+											error: false,
+											conversationOptions: null,
+											requestOptions: { prompt: lastText, options: null },
+										}
+										scrollToBottom()
+
+									}
+
+								} catch (error) {
+									console.error(error)
+								}
+							}
+						}
+
+						readStream(); // 继续读取流式数据
+					});
+				}
+
+				readStream();
+			}).catch(error => {
+				console.error('请求发生错误:', error);
+			});
+		},
+		onFailure: function(error_code, error_message) {
+			alert("失败：[" + error_code + "]" + error_message);
+		}
+	});
+
+}
+
 function handleSubmit() {
   onConversation()
 }
 
 
 const contextList: { role: string; content: string }[] = []
-
 
 function onConversation() {
 	let lastText = ''
@@ -81,12 +177,12 @@ function onConversation() {
 		role: "user",
 		content: ask_prompt
 	})
-	if (contextList.length > 10) {
-		contextList.splice(0, contextList.length - 10);
+	if (contextList.length > maxMessage) {
+		contextList.splice(0, contextList.length - maxMessage);
 	}
 	scrollToBottom()
 
-	prompt.value = ''
+	prompt.value = ''.trim()
 	dataSources.value.push({
 		dateTime:new Date().toLocaleString(),
 		text: '',
@@ -113,10 +209,12 @@ function onConversation() {
 								role: "system",
 								content: lastText
 							})
-							if (contextList.length > 10) {
-								contextList.splice(0, contextList.length - 10);
+							if (contextList.length > maxMessage) {
+								contextList.splice(0, contextList.length - maxMessage);
 							}
 							lastText = ''
+							useCopyCode()
+
 							return;
 						}
 						const data = new TextDecoder().decode(value);
@@ -269,18 +367,18 @@ function handleClear() {
 }
 
 function handleEnter(event: KeyboardEvent) {
-  if (!isMobile.value) {
+  // if (!isMobile.value) {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
       handleSubmit()
     }
-  }
-  else {
-    if (event.key === 'Enter' && event.ctrlKey) {
-      event.preventDefault()
-      handleSubmit()
-    }
-  }
+  // }
+  // else {
+  //   if (event.key === 'Enter' && event.ctrlKey) {
+  //     event.preventDefault()
+  //     handleSubmit()
+  //   }
+  // }
 }
 
 function handleStop() {
@@ -395,21 +493,21 @@ onUnmounted(() => {
     <footer :class="footerClass">
       <div class="w-full max-w-screen-xl m-auto">
         <div class="flex items-center justify-between space-x-2">
-          <HoverButton @click="handleClear">
-            <span class="text-xl text-[#4f555e] dark:text-white">
-              <SvgIcon icon="ri:delete-bin-line" />
-            </span>
-          </HoverButton>
-          <HoverButton v-if="!isMobile" @click="handleExport">
-            <span class="text-xl text-[#4f555e] dark:text-white">
-              <SvgIcon icon="ri:download-2-line" />
-            </span>
-          </HoverButton>
-          <HoverButton v-if="!isMobile" @click="toggleUsingContext">
-            <span class="text-xl" :class="{ 'text-[#4b9e5f]': usingContext, 'text-[#a8071a]': !usingContext }">
-              <SvgIcon icon="ri:chat-history-line" />
-            </span>
-          </HoverButton>
+<!--          <HoverButton @click="handleClear">-->
+<!--            <span class="text-xl text-[#4f555e] dark:text-white">-->
+<!--              <SvgIcon icon="ri:delete-bin-line" />-->
+<!--            </span>-->
+<!--          </HoverButton>-->
+<!--          <HoverButton v-if="!isMobile" @click="handleExport">-->
+<!--            <span class="text-xl text-[#4f555e] dark:text-white">-->
+<!--              <SvgIcon icon="ri:download-2-line" />-->
+<!--            </span>-->
+<!--          </HoverButton>-->
+<!--          <HoverButton v-if="!isMobile" @click="toggleUsingContext">-->
+<!--            <span class="text-xl" :class="{ 'text-[#4b9e5f]': usingContext, 'text-[#a8071a]': !usingContext }">-->
+<!--              <SvgIcon icon="ri:chat-history-line" />-->
+<!--            </span>-->
+<!--          </HoverButton>-->
           <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption">
             <template #default="{ handleInput, handleBlur, handleFocus }">
               <NInput

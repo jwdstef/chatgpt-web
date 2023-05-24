@@ -25,6 +25,7 @@ export function useCopyCode() {
       }
     })
   }
+	copyCodeBlock()
 
   onMounted(() => copyCodeBlock())
 
