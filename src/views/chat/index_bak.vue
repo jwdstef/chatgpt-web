@@ -14,7 +14,7 @@ import HeaderComponent from './components/Header/index.vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChatStore, usePromptStore } from '@/store'
-import {fetchChatAPIProcess, oneApiChat} from '@/api'
+import { fetchChatAPIProcess } from '@/api'
 import { t } from '@/locales'
 
 let controller = new AbortController()
@@ -36,8 +36,7 @@ const { usingContext, toggleUsingContext } = useUsingContext()
 
 const { uuid } = route.params as { uuid: string }
 
-// const dataSources = computed(() => chatStore.getChatByUuid(+uuid))
-const dataSources = ref<any[]>([])
+const dataSources = computed(() => chatStore.getChatByUuid(+uuid))
 const conversationList = computed(() => dataSources.value.filter(item => (!item.inversion && !item.error)))
 
 const prompt = ref<string>('')
@@ -60,140 +59,262 @@ function handleSubmit() {
   onConversation()
 }
 
+async function onConversation() {
+  let message = prompt.value
 
-const contextList: { role: string; content: string }[] = []
+  if (loading.value)
+    return
 
+  if (!message || message.trim() === '')
+    return
 
-function onConversation() {
-	let lastText = ''
-	let id = ''
-	let ask_prompt = prompt.value
-	dataSources.value.push({
-		dateTime:new Date().toLocaleString(),
-		text: ask_prompt,
-		inversion: true,
-		error: false,
-		conversationOptions: null,
-		requestOptions: { prompt: 'message', options: null },
-	})
+  controller = new AbortController()
 
-	contextList.push({
-		role: "user",
-		content: ask_prompt
-	})
-	if (contextList.length > 10) {
-		contextList.splice(0, contextList.length - 10);
-	}
-	scrollToBottom()
+  addChat(
+    +uuid,
+    {
+      dateTime: new Date().toLocaleString(),
+      text: message,
+      inversion: true,
+      error: false,
+      conversationOptions: null,
+      requestOptions: { prompt: message, options: null },
+    },
+  )
+  scrollToBottom()
 
-	prompt.value = ''
-	dataSources.value.push({
-		dateTime:new Date().toLocaleString(),
-		text: '',
-		inversion: false,
-		error: false,
-		conversationOptions: null,
-		requestOptions: { prompt: lastText, options: null },
-	})
-	scrollToBottom()
+  loading.value = true
+  prompt.value = ''
 
-	window.sendDataToJava({
-		request: JSON.stringify({key:'query-server-config'}),
-		persistent:false,
-		onSuccess: function(responseData) {
-			let token = JSON.parse(responseData).token
-			oneApiChat(contextList,token).then(response => {
-				const reader = response.body!.getReader(); // 注意这里使用了非空断言
+  let options: Chat.ConversationRequest = {}
+  const lastContext = conversationList.value[conversationList.value.length - 1]?.conversationOptions
 
-				function readStream() {
-					reader.read().then(({ done, value }) => {
-						if (done) {
-							console.log('流式输出完成');
-							contextList.push({
-								role: "system",
-								content: lastText
-							})
-							if (contextList.length > 10) {
-								contextList.splice(0, contextList.length - 10);
-							}
-							lastText = ''
-							return;
-						}
-						const data = new TextDecoder().decode(value);
-						const dataList = data.split('data: ')
-						for (let index in dataList){
-							if(dataList[index] !== '') {
-								console.log('dataList[index]',dataList[index])
-								try {
-									const jsonRegex = /"id":"(.*?)","object":"chat\.completion\.chunk","created":\d+,"model":"[^"]+","choices":\[\{"delta":\{"content":"(.*?)"\},"index":\d+,"finish_reason":null}]/;
-									const match = dataList[index].match(jsonRegex);
-									if (match) {
-										const content = match[2];
-										lastText += content.replace(/\\n/g, "\n").replace('\\"', '"');
-										console.log('content:', content)
-										console.log('content.replace',content.replace(/\\n/g, "\n"))
-										console.log(lastText)
-										dataSources.value[dataSources.value.length - 1] = {
-											dateTime:new Date().toLocaleString(),
-											text: lastText,
-											inversion: false,
-											error: false,
-											conversationOptions: null,
-											requestOptions: { prompt: lastText, options: null },
-										}
-										scrollToBottom()
+  if (lastContext && usingContext.value)
+    options = { ...lastContext }
 
-									}
+  addChat(
+    +uuid,
+    {
+      dateTime: new Date().toLocaleString(),
+      text: '',
+      loading: true,
+      inversion: false,
+      error: false,
+      conversationOptions: null,
+      requestOptions: { prompt: message, options: { ...options } },
+    },
+  )
+  scrollToBottom()
 
-								} catch (error) {
-									console.error(error)
-								}
-							}
-						}
+  try {
+    let lastText = ''
+    const fetchChatAPIOnce = async () => {
+      await fetchChatAPIProcess<Chat.ConversationResponse>({
+        prompt: message,
+        options,
+        signal: controller.signal,
+        onDownloadProgress: ({ event }) => {
+          const xhr = event.target
+          const { responseText } = xhr
+          // Always process the final line
+          const lastIndex = responseText.lastIndexOf('\n', responseText.length - 2)
+          let chunk = responseText
+          if (lastIndex !== -1)
+            chunk = responseText.substring(lastIndex)
+          try {
+            const data = JSON.parse(chunk)
+            updateChat(
+              +uuid,
+              dataSources.value.length - 1,
+              {
+                dateTime: new Date().toLocaleString(),
+                text: lastText + (data.text ?? ''),
+                inversion: false,
+                error: false,
+                loading: true,
+                conversationOptions: { conversationId: data.conversationId, parentMessageId: data.id },
+                requestOptions: { prompt: message, options: { ...options } },
+              },
+            )
 
-						readStream(); // 继续读取流式数据
-					});
-				}
+            if (openLongReply && data.detail.choices[0].finish_reason === 'length') {
+              options.parentMessageId = data.id
+              lastText = data.text
+              message = ''
+              return fetchChatAPIOnce()
+            }
 
-				readStream();
-			}).catch(error => {
-				console.error('请求发生错误:', error);
-			});
-		},
-		onFailure: function(error_code, error_message) {
-			alert("失败：[" + error_code + "]" + error_message);
-		}
-	});
+            scrollToBottomIfAtBottom()
+          }
+          catch (error) {
+            //
+          }
+        },
+      })
+      updateChatSome(+uuid, dataSources.value.length - 1, { loading: false })
+    }
 
+    await fetchChatAPIOnce()
+  }
+  catch (error: any) {
+    const errorMessage = error?.message ?? t('common.wrong')
+
+    if (error.message === 'canceled') {
+      updateChatSome(
+        +uuid,
+        dataSources.value.length - 1,
+        {
+          loading: false,
+        },
+      )
+      scrollToBottomIfAtBottom()
+      return
+    }
+
+    const currentChat = getChatByUuidAndIndex(+uuid, dataSources.value.length - 1)
+
+    if (currentChat?.text && currentChat.text !== '') {
+      updateChatSome(
+        +uuid,
+        dataSources.value.length - 1,
+        {
+          text: `${currentChat.text}\n[${errorMessage}]`,
+          error: false,
+          loading: false,
+        },
+      )
+      return
+    }
+
+    updateChat(
+      +uuid,
+      dataSources.value.length - 1,
+      {
+        dateTime: new Date().toLocaleString(),
+        text: errorMessage,
+        inversion: false,
+        error: true,
+        loading: false,
+        conversationOptions: null,
+        requestOptions: { prompt: message, options: { ...options } },
+      },
+    )
+    scrollToBottomIfAtBottom()
+  }
+  finally {
+    loading.value = false
+  }
 }
-function onRegenerate(index: number) {
-	// scrollToBottom()
-	// oneApiChat([
-	// 	{
-	// 		role: 'user',
-	// 		content: '你好，你是谁'
-	// 	}
-	// ]).then(response => {
-	// 	const reader = response.body!.getReader(); // 注意这里使用了非空断言
-	//
-	// 	function readStream() {
-	// 		reader.read().then(({ done, value }) => {
-	// 			if (done) {
-	// 				console.log('流式输出完成');
-	// 				return;
-	// 			}
-	//
-	// 			const data = new TextDecoder().decode(value);
-	// 			console.log(data); // 在这里处理流式数据
-	//
-	// 			readStream(); // 继续读取流式数据
-	// 		});
-	// 	}
-	//
-	// 	readStream();
-	// }).catch(error => {
-	// 	console.error('请求发生错误:', error);
-	// });
+
+async function onRegenerate(index: number) {
+  if (loading.value)
+    return
+
+  controller = new AbortController()
+
+  const { requestOptions } = dataSources.value[index]
+
+  let message = requestOptions?.prompt ?? ''
+
+  let options: Chat.ConversationRequest = {}
+
+  if (requestOptions.options)
+    options = { ...requestOptions.options }
+
+  loading.value = true
+
+  updateChat(
+    +uuid,
+    index,
+    {
+      dateTime: new Date().toLocaleString(),
+      text: '',
+      inversion: false,
+      error: false,
+      loading: true,
+      conversationOptions: null,
+      requestOptions: { prompt: message, options: { ...options } },
+    },
+  )
+
+  try {
+    let lastText = ''
+    const fetchChatAPIOnce = async () => {
+      await fetchChatAPIProcess<Chat.ConversationResponse>({
+        prompt: message,
+        options,
+        signal: controller.signal,
+        onDownloadProgress: ({ event }) => {
+          const xhr = event.target
+          const { responseText } = xhr
+          // Always process the final line
+          const lastIndex = responseText.lastIndexOf('\n', responseText.length - 2)
+          let chunk = responseText
+          if (lastIndex !== -1)
+            chunk = responseText.substring(lastIndex)
+          try {
+            const data = JSON.parse(chunk)
+            updateChat(
+              +uuid,
+              index,
+              {
+                dateTime: new Date().toLocaleString(),
+                text: lastText + (data.text ?? ''),
+                inversion: false,
+                error: false,
+                loading: true,
+                conversationOptions: { conversationId: data.conversationId, parentMessageId: data.id },
+                requestOptions: { prompt: message, options: { ...options } },
+              },
+            )
+
+            if (openLongReply && data.detail.choices[0].finish_reason === 'length') {
+              options.parentMessageId = data.id
+              lastText = data.text
+              message = ''
+              return fetchChatAPIOnce()
+            }
+          }
+          catch (error) {
+            //
+          }
+        },
+      })
+      updateChatSome(+uuid, index, { loading: false })
+    }
+    await fetchChatAPIOnce()
+  }
+  catch (error: any) {
+    if (error.message === 'canceled') {
+      updateChatSome(
+        +uuid,
+        index,
+        {
+          loading: false,
+        },
+      )
+      return
+    }
+
+    const errorMessage = error?.message ?? t('common.wrong')
+
+    updateChat(
+      +uuid,
+      index,
+      {
+        dateTime: new Date().toLocaleString(),
+        text: errorMessage,
+        inversion: false,
+        error: true,
+        loading: false,
+        conversationOptions: null,
+        requestOptions: { prompt: message, options: { ...options } },
+      },
+    )
+  }
+  finally {
+    loading.value = false
+  }
 }
 
 function handleExport() {

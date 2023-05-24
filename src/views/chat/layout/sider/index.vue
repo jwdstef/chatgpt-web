@@ -11,7 +11,8 @@ import { PromptStore } from '@/components/common'
 const appStore = useAppStore()
 const chatStore = useChatStore()
 
-const { isMobile } = useBasicLayout()
+// const { isMobile } = useBasicLayout()
+const isMobile = ref(true)
 const show = ref(false)
 
 const collapsed = computed(() => appStore.siderCollapsed)

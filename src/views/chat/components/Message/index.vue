@@ -109,13 +109,13 @@ function handleRegenerate() {
           :as-raw-text="asRawText"
         />
         <div class="flex flex-col">
-          <button
-            v-if="!inversion"
-            class="mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
-            @click="handleRegenerate"
-          >
-            <SvgIcon icon="ri:restart-line" />
-          </button>
+<!--          <button-->
+<!--            v-if="!inversion"-->
+<!--            class="mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"-->
+<!--            @click="handleRegenerate"-->
+<!--          >-->
+<!--            <SvgIcon icon="ri:restart-line" />-->
+<!--          </button>-->
           <NDropdown
             :trigger="isMobile ? 'click' : 'hover'"
             :placement="!inversion ? 'right' : 'left'"

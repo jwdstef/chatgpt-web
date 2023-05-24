@@ -37,6 +37,26 @@ export function fetchChatAPIProcess<T = any>(
   })
 }
 
+type ChatItem = {
+	role: string;
+	content: string;
+};
+export function oneApiChat<T = any>(chatList: ChatItem[], token:string) {
+	return fetch('http://60.204.142.133:2000/v1/chat/completions', {
+		method: 'POST',
+		headers: {
+			// 'Authorization': '38e6e1173bc045c094e6f0454c4b29ec',
+			'Authorization': token,
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({
+			model: 'gpt-3.5-turbo',
+			messages: chatList,
+			stream: true
+		})
+	});
+}
+
 export function fetchSession<T>() {
   return post<T>({
     url: '/session',

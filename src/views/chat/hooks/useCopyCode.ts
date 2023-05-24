@@ -6,6 +6,7 @@ export function useCopyCode() {
     const codeBlockWrapper = document.querySelectorAll('.code-block-wrapper')
     codeBlockWrapper.forEach((wrapper) => {
       const copyBtn = wrapper.querySelector('.code-block-header__copy')
+      const insertBtn = wrapper.querySelector('.code-block-header__insert')
       const codeBlock = wrapper.querySelector('.code-block-body')
       if (copyBtn && codeBlock) {
         copyBtn.addEventListener('click', () => {
@@ -14,6 +15,13 @@ export function useCopyCode() {
           else
             copyText({ text: codeBlock.textContent ?? '', origin: true })
         })
+
+				insertBtn.addEventListener('click', () => {
+					window.sendDataToJava({
+						request: JSON.stringify({key: 'insert', data: codeBlock.textContent ?? ''}),
+						persistent: false
+					})
+				})
       }
     })
   }
