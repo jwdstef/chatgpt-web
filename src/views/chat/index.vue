@@ -3,7 +3,7 @@ import type { Ref } from 'vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { NAutoComplete, NButton, NInput, useDialog, useMessage } from 'naive-ui'
+import { NAutoComplete, NButton, NInput,NModal, useDialog, useMessage } from 'naive-ui'
 import html2canvas from 'html2canvas'
 import { Message } from './components'
 import { useScroll } from './hooks/useScroll'
@@ -44,6 +44,7 @@ const conversationList = computed(() => dataSources.value.filter(item => (!item.
 const prompt = ref<string>('')
 const loading = ref<boolean>(false)
 const inputRef = ref<Ref | null>(null)
+const visible = ref<boolean>(false)
 
 // 添加PromptStore
 const promptStore = usePromptStore()
@@ -58,35 +59,41 @@ dataSources.value.forEach((item, index) => {
 })
 
 window.postMessage = function (message) {
-	dataSources.value.push({
-		dateTime:new Date().toLocaleString(),
-		text: message.dataStr,
-		inversion: true,
-		error: false,
-		conversationOptions: null,
-		requestOptions: { prompt: 'message', options: null },
-	})
-	let lastText = ''
-	contextList.push({
-		role: "user",
-		content: message.data
-	})
-	if (contextList.length > maxMessage) {
-		contextList.splice(0, contextList.length - maxMessage);
-	}
-	dataSources.value.push({
-		dateTime:new Date().toLocaleString(),
-		text: '',
-		inversion: false,
-		error: false,
-		conversationOptions: null,
-		requestOptions: { prompt: lastText, options: null },
-	})
+
 	window.sendDataToJava({
 		request: JSON.stringify({key:'query-server-config'}),
 		persistent:false,
 		onSuccess: function(responseData) {
 			let token = JSON.parse(responseData).token
+			if (!token) {
+				visible.value  = true
+				return
+			}
+
+			dataSources.value.push({
+				dateTime:new Date().toLocaleString(),
+				text: message.dataStr,
+				inversion: true,
+				error: false,
+				conversationOptions: null,
+				requestOptions: { prompt: 'message', options: null },
+			})
+			let lastText = ''
+			contextList.push({
+				role: "user",
+				content: message.data
+			})
+			if (contextList.length > maxMessage) {
+				contextList.splice(0, contextList.length - maxMessage);
+			}
+			dataSources.value.push({
+				dateTime:new Date().toLocaleString(),
+				text: '',
+				inversion: false,
+				error: false,
+				conversationOptions: null,
+				requestOptions: { prompt: lastText, options: null },
+			})
 			oneApiChat(contextList,token).then(response => {
 				const reader = response.body!.getReader(); // 注意这里使用了非空断言
 
@@ -133,6 +140,14 @@ window.postMessage = function (message) {
 
 								} catch (error) {
 									console.error(error)
+									dataSources.value[dataSources.value.length - 1] = {
+										dateTime:new Date().toLocaleString(),
+										text: '网络异常，请检查网络是否通畅',
+										inversion: false,
+										error: true,
+										conversationOptions: null,
+										requestOptions: { prompt: lastText, options: null },
+									}
 								}
 							}
 						}
@@ -143,7 +158,15 @@ window.postMessage = function (message) {
 
 				readStream();
 			}).catch(error => {
-				console.error('请求发生错误:', error);
+				console.error('请求发生错误1:', error);
+				dataSources.value[dataSources.value.length - 1] = {
+					dateTime:new Date().toLocaleString(),
+					text: '网络异常，请检查网络是否通畅',
+					inversion: false,
+					error: true,
+					conversationOptions: null,
+					requestOptions: { prompt: '网络异常，请检查网络是否通畅', options: null },
+				}
 			});
 		},
 		onFailure: function(error_code, error_message) {
@@ -161,43 +184,46 @@ function handleSubmit() {
 const contextList: { role: string; content: string }[] = []
 
 function onConversation() {
-	let lastText = ''
-	let id = ''
-	let ask_prompt = prompt.value
-	dataSources.value.push({
-		dateTime:new Date().toLocaleString(),
-		text: ask_prompt,
-		inversion: true,
-		error: false,
-		conversationOptions: null,
-		requestOptions: { prompt: 'message', options: null },
-	})
-
-	contextList.push({
-		role: "user",
-		content: ask_prompt
-	})
-	if (contextList.length > maxMessage) {
-		contextList.splice(0, contextList.length - maxMessage);
-	}
-	scrollToBottom()
-
-	prompt.value = ''.trim()
-	dataSources.value.push({
-		dateTime:new Date().toLocaleString(),
-		text: '',
-		inversion: false,
-		error: false,
-		conversationOptions: null,
-		requestOptions: { prompt: lastText, options: null },
-	})
-	scrollToBottom()
-
 	window.sendDataToJava({
 		request: JSON.stringify({key:'query-server-config'}),
 		persistent:false,
 		onSuccess: function(responseData) {
 			let token = JSON.parse(responseData).token
+			if (!token) {
+				visible.value  = true
+				return
+			}
+			let lastText = ''
+			let id = ''
+			let ask_prompt = prompt.value
+			dataSources.value.push({
+				dateTime:new Date().toLocaleString(),
+				text: ask_prompt,
+				inversion: true,
+				error: false,
+				conversationOptions: null,
+				requestOptions: { prompt: 'message', options: null },
+			})
+
+			contextList.push({
+				role: "user",
+				content: ask_prompt
+			})
+			if (contextList.length > maxMessage) {
+				contextList.splice(0, contextList.length - maxMessage);
+			}
+			scrollToBottom()
+
+			prompt.value = ''.trim()
+			dataSources.value.push({
+				dateTime:new Date().toLocaleString(),
+				text: '',
+				inversion: false,
+				error: false,
+				conversationOptions: null,
+				requestOptions: { prompt: lastText, options: null },
+			})
+			scrollToBottom()
 			oneApiChat(contextList,token).then(response => {
 				const reader = response.body!.getReader(); // 注意这里使用了非空断言
 
@@ -256,6 +282,14 @@ function onConversation() {
 				readStream();
 			}).catch(error => {
 				console.error('请求发生错误:', error);
+				dataSources.value[dataSources.value.length - 1] = {
+					dateTime:new Date().toLocaleString(),
+					text: '网络异常，请检查网络是否通畅',
+					inversion: false,
+					error: true,
+					conversationOptions: null,
+					requestOptions: { prompt: '网络异常，请检查网络是否通畅', options: null },
+				}
 			});
 		},
 		onFailure: function(error_code, error_message) {
@@ -445,6 +479,27 @@ onUnmounted(() => {
 
 <template>
   <div class="flex flex-col w-full h-full">
+		<NModal :show="visible" style="width: 90%; max-width: 640px">
+		<div class="p-10 bg-white rounded dark:bg-slate-800">
+			<div class="space-y-4">
+				<header class="space-y-2">
+					<h2 class="text-2xl font-bold text-center text-slate-800 dark:text-neutral-200">
+						Chinasoft-Xcode
+					</h2>
+					<p class="text-base text-center text-slate-500 dark:text-slate-500">
+						请配置 api key
+					</p>
+				</header>
+				<NButton
+					block
+					type="primary"
+					@click="visible = false"
+				>
+					确定
+				</NButton>
+			</div>
+		</div>
+	</NModal>
     <HeaderComponent
       v-if="isMobile"
       :using-context="usingContext"
@@ -461,7 +516,7 @@ onUnmounted(() => {
           <template v-if="!dataSources.length">
             <div class="flex items-center justify-center mt-4 text-center text-neutral-300">
               <SvgIcon icon="ri:bubble-chart-fill" class="mr-2 text-3xl" />
-              <span>Aha~</span>
+              <span>欢迎使用Chinasoft-Xcode</span>
             </div>
           </template>
           <template v-else>
