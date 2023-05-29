@@ -69,105 +69,7 @@ window.postMessage = function (message) {
 				visible.value  = true
 				return
 			}
-
-			dataSources.value.push({
-				dateTime:new Date().toLocaleString(),
-				text: message.dataStr,
-				inversion: true,
-				error: false,
-				conversationOptions: null,
-				requestOptions: { prompt: 'message', options: null },
-			})
-			let lastText = ''
-			contextList.push({
-				role: "user",
-				content: message.data
-			})
-			if (contextList.length > maxMessage) {
-				contextList.splice(0, contextList.length - maxMessage);
-			}
-			dataSources.value.push({
-				dateTime:new Date().toLocaleString(),
-				text: '',
-				inversion: false,
-				error: false,
-				conversationOptions: null,
-				requestOptions: { prompt: lastText, options: null },
-			})
-			oneApiChat(contextList,token).then(response => {
-				const reader = response.body!.getReader(); // 注意这里使用了非空断言
-
-				function readStream() {
-					reader.read().then(({ done, value }) => {
-						if (done) {
-							console.log('流式输出完成');
-							contextList.push({
-								role: "system",
-								content: lastText
-							})
-							if (contextList.length > maxMessage) {
-								contextList.splice(0, contextList.length - maxMessage);
-							}
-							lastText = ''
-							useCopyCode()
-							return;
-						}
-						const data = new TextDecoder().decode(value);
-						const dataList = data.split('data: ')
-						for (let index in dataList){
-							if(dataList[index] !== '') {
-								console.log('dataList[index]',dataList[index])
-								try {
-									const jsonRegex = /"id":"(.*?)","object":"chat\.completion\.chunk","created":\d+,"model":"[^"]+","choices":\[\{"delta":\{"content":"(.*?)"\},"index":\d+,"finish_reason":null}]/;
-									const match = dataList[index].match(jsonRegex);
-									if (match) {
-										const content = match[2];
-										lastText += content.replace(/\\n/g, "\n").replace('\\"', '"');
-										console.log('content:', content)
-										console.log('content.replace',content.replace(/\\n/g, "\n"))
-										console.log(lastText)
-										dataSources.value[dataSources.value.length - 1] = {
-											dateTime:new Date().toLocaleString(),
-											text: lastText,
-											inversion: false,
-											error: false,
-											conversationOptions: null,
-											requestOptions: { prompt: lastText, options: null },
-										}
-										scrollToBottom()
-
-									}
-
-								} catch (error) {
-									console.error(error)
-									dataSources.value[dataSources.value.length - 1] = {
-										dateTime:new Date().toLocaleString(),
-										text: '网络异常，请检查网络是否通畅',
-										inversion: false,
-										error: true,
-										conversationOptions: null,
-										requestOptions: { prompt: lastText, options: null },
-									}
-								}
-							}
-						}
-
-						readStream(); // 继续读取流式数据
-					});
-				}
-
-				readStream();
-			}).catch(error => {
-				console.error('请求发生错误1:', error);
-				dataSources.value[dataSources.value.length - 1] = {
-					dateTime:new Date().toLocaleString(),
-					text: '网络异常，请检查网络是否通畅',
-					inversion: false,
-					error: true,
-					conversationOptions: null,
-					requestOptions: { prompt: '网络异常，请检查网络是否通畅', options: null },
-				}
-			});
+			sendMessage(message.dataStr, message.data, token)
 		},
 		onFailure: function(error_code, error_message) {
 			alert("失败：[" + error_code + "]" + error_message);
@@ -180,6 +82,127 @@ function handleSubmit() {
   onConversation()
 }
 
+function sendMessage(showData:string, sendData:string, token:string) {
+	let lastText = ''
+	dataSources.value.push({
+		dateTime:new Date().toLocaleString(),
+		text: showData,
+		inversion: true,
+		error: false,
+		conversationOptions: null,
+		requestOptions: { prompt: 'message', options: null },
+	})
+
+	contextList.push({
+		role: "user",
+		content: sendData
+	})
+	if (contextList.length > maxMessage) {
+		contextList.splice(0, contextList.length - maxMessage);
+	}
+	scrollToBottom()
+
+	dataSources.value.push({
+		dateTime:new Date().toLocaleString(),
+		text: '',
+		inversion: false,
+		error: false,
+		conversationOptions: null,
+		requestOptions: { prompt: lastText, options: null },
+	})
+	scrollToBottom()
+	oneApiChat(contextList,token).then(response => {
+		loading.value = true
+		const reader = response.body!.getReader(); // 注意这里使用了非空断言
+
+		function readStream() {
+			reader.read().then(({ done, value }) => {
+				if (done) {
+					console.log('流式输出完成');
+					contextList.push({
+						role: "system",
+						content: lastText
+					})
+					if (contextList.length > maxMessage) {
+						contextList.splice(0, contextList.length - maxMessage);
+					}
+					lastText = ''
+					useCopyCode()
+					loading.value = false
+					return;
+				}
+				const data = new TextDecoder().decode(value);
+				const dataList = data.split('data: ')
+				for (let index in dataList){
+					if(dataList[index] !== '') {
+						console.log('dataList[index]',dataList[index])
+						console.log('dataList[index].trim()',dataList[index].trim() === '{"error":{"message":"无效的 token","type":"one_api_error"}}')
+
+						if(dataList[index].trim() === '{"error":{"message":"该 token 状态不可用","type":"one_api_error"}}') {
+							dataSources.value[dataSources.value.length - 1] = {
+								dateTime: new Date().toLocaleString(),
+								text: '该 token 状态不可用,请检查 token 额度或正确性',
+								inversion: false,
+								error: true,
+								conversationOptions: null,
+								requestOptions: {prompt: '该 token 状态不可用,请检查 token 额度或正确性', options: null},
+							}
+							return
+						} else if (dataList[index].trim() === '{"error":{"message":"无效的 token","type":"one_api_error"}}'){
+							dataSources.value[dataSources.value.length - 1] = {
+								dateTime: new Date().toLocaleString(),
+								text: '该 token 状态不可用,请检查 token 额度或正确性',
+								inversion: false,
+								error: true,
+								conversationOptions: null,
+								requestOptions: {prompt: '该 token 状态不可用,请检查 token 额度或正确性', options: null},
+							}
+							return
+						}
+						try {
+							const jsonRegex = /"id":"(.*?)","object":"chat\.completion\.chunk","created":\d+,"model":"[^"]+","choices":\[\{"delta":\{"content":"(.*?)"\},"index":\d+,"finish_reason":null}]/;
+							const match = dataList[index].match(jsonRegex);
+							if (match) {
+								const content = match[2];
+								lastText += content.replace(/\\n/g, "\n").replace('\\"', '"');
+								console.log('content:', content)
+								console.log('content.replace',content.replace(/\\n/g, "\n"))
+								console.log(lastText)
+								dataSources.value[dataSources.value.length - 1] = {
+									dateTime:new Date().toLocaleString(),
+									text: lastText,
+									inversion: false,
+									error: false,
+									conversationOptions: null,
+									requestOptions: { prompt: lastText, options: null },
+								}
+								scrollToBottom()
+
+							}
+
+						} catch (error) {
+							console.error(error)
+						}
+					}
+				}
+
+				readStream(); // 继续读取流式数据
+			});
+		}
+
+		readStream();
+	}).catch(error => {
+		console.error('请求发生错误:', error);
+		dataSources.value[dataSources.value.length - 1] = {
+			dateTime:new Date().toLocaleString(),
+			text: '网络异常，请检查网络是否通畅',
+			inversion: false,
+			error: true,
+			conversationOptions: null,
+			requestOptions: { prompt: '网络异常，请检查网络是否通畅', options: null },
+		}
+	});
+}
 
 const contextList: { role: string; content: string }[] = []
 
@@ -193,104 +216,10 @@ function onConversation() {
 				visible.value  = true
 				return
 			}
-			let lastText = ''
-			let id = ''
 			let ask_prompt = prompt.value
-			dataSources.value.push({
-				dateTime:new Date().toLocaleString(),
-				text: ask_prompt,
-				inversion: true,
-				error: false,
-				conversationOptions: null,
-				requestOptions: { prompt: 'message', options: null },
-			})
-
-			contextList.push({
-				role: "user",
-				content: ask_prompt
-			})
-			if (contextList.length > maxMessage) {
-				contextList.splice(0, contextList.length - maxMessage);
-			}
-			scrollToBottom()
-
 			prompt.value = ''.trim()
-			dataSources.value.push({
-				dateTime:new Date().toLocaleString(),
-				text: '',
-				inversion: false,
-				error: false,
-				conversationOptions: null,
-				requestOptions: { prompt: lastText, options: null },
-			})
-			scrollToBottom()
-			oneApiChat(contextList,token).then(response => {
-				const reader = response.body!.getReader(); // 注意这里使用了非空断言
+			sendMessage(ask_prompt, ask_prompt, token)
 
-				function readStream() {
-					reader.read().then(({ done, value }) => {
-						if (done) {
-							console.log('流式输出完成');
-							contextList.push({
-								role: "system",
-								content: lastText
-							})
-							if (contextList.length > maxMessage) {
-								contextList.splice(0, contextList.length - maxMessage);
-							}
-							lastText = ''
-							useCopyCode()
-
-							return;
-						}
-						const data = new TextDecoder().decode(value);
-						const dataList = data.split('data: ')
-						for (let index in dataList){
-							if(dataList[index] !== '') {
-								console.log('dataList[index]',dataList[index])
-								try {
-									const jsonRegex = /"id":"(.*?)","object":"chat\.completion\.chunk","created":\d+,"model":"[^"]+","choices":\[\{"delta":\{"content":"(.*?)"\},"index":\d+,"finish_reason":null}]/;
-									const match = dataList[index].match(jsonRegex);
-									if (match) {
-										const content = match[2];
-										lastText += content.replace(/\\n/g, "\n").replace('\\"', '"');
-										console.log('content:', content)
-										console.log('content.replace',content.replace(/\\n/g, "\n"))
-										console.log(lastText)
-										dataSources.value[dataSources.value.length - 1] = {
-											dateTime:new Date().toLocaleString(),
-											text: lastText,
-											inversion: false,
-											error: false,
-											conversationOptions: null,
-											requestOptions: { prompt: lastText, options: null },
-										}
-										scrollToBottom()
-
-									}
-
-								} catch (error) {
-									console.error(error)
-								}
-							}
-						}
-
-						readStream(); // 继续读取流式数据
-					});
-				}
-
-				readStream();
-			}).catch(error => {
-				console.error('请求发生错误:', error);
-				dataSources.value[dataSources.value.length - 1] = {
-					dateTime:new Date().toLocaleString(),
-					text: '网络异常，请检查网络是否通畅',
-					inversion: false,
-					error: true,
-					conversationOptions: null,
-					requestOptions: { prompt: '网络异常，请检查网络是否通畅', options: null },
-				}
-			});
 		},
 		onFailure: function(error_code, error_message) {
 			alert("失败：[" + error_code + "]" + error_message);
