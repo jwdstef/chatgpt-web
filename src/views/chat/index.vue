@@ -46,6 +46,9 @@ const loading = ref<boolean>(false)
 const inputRef = ref<Ref | null>(null)
 const visible = ref<boolean>(false)
 
+
+let continueTalk = true
+
 // 添加PromptStore
 const promptStore = usePromptStore()
 
@@ -83,6 +86,10 @@ function handleSubmit() {
 }
 
 function sendMessage(showData:string, sendData:string, token:string) {
+	if (loading.value || sendData.trim() === '') {
+		return
+	}
+	loading.value = true
 	let lastText = ''
 	dataSources.value.push({
 		dateTime:new Date().toLocaleString(),
@@ -112,10 +119,15 @@ function sendMessage(showData:string, sendData:string, token:string) {
 	})
 	scrollToBottom()
 	oneApiChat(contextList,token).then(response => {
-		loading.value = true
+
 		const reader = response.body!.getReader(); // 注意这里使用了非空断言
 
 		function readStream() {
+			if (!continueTalk) {
+				continueTalk = true
+				loading.value = false
+				return Promise.reject(new Error('中断链'));
+			}
 			reader.read().then(({ done, value }) => {
 				if (done) {
 					console.log('流式输出完成');
@@ -147,6 +159,7 @@ function sendMessage(showData:string, sendData:string, token:string) {
 								conversationOptions: null,
 								requestOptions: {prompt: '该 token 状态不可用,请检查 token 额度或正确性', options: null},
 							}
+							loading.value = false
 							return
 						} else if (dataList[index].trim() === '{"error":{"message":"无效的 token","type":"one_api_error"}}'){
 							dataSources.value[dataSources.value.length - 1] = {
@@ -157,6 +170,7 @@ function sendMessage(showData:string, sendData:string, token:string) {
 								conversationOptions: null,
 								requestOptions: {prompt: '该 token 状态不可用,请检查 token 额度或正确性', options: null},
 							}
+							loading.value = false
 							return
 						}
 						try {
@@ -182,6 +196,7 @@ function sendMessage(showData:string, sendData:string, token:string) {
 
 						} catch (error) {
 							console.error(error)
+							loading.value = false
 						}
 					}
 				}
@@ -201,6 +216,7 @@ function sendMessage(showData:string, sendData:string, token:string) {
 			conversationOptions: null,
 			requestOptions: { prompt: '网络异常，请检查网络是否通畅', options: null },
 		}
+		loading.value = false
 	});
 }
 
@@ -332,8 +348,10 @@ function handleClear() {
 function handleEnter(event: KeyboardEvent) {
   // if (!isMobile.value) {
     if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault()
-      handleSubmit()
+			event.preventDefault()
+			if(!loading.value) {
+				handleSubmit()
+			}
     }
   // }
   // else {
@@ -346,8 +364,9 @@ function handleEnter(event: KeyboardEvent) {
 
 function handleStop() {
   if (loading.value) {
-    controller.abort()
-    loading.value = false
+    // controller.abort()
+    // loading.value = false
+		continueTalk = false
   }
 }
 
