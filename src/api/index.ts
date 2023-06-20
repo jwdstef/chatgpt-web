@@ -42,7 +42,8 @@ type ChatItem = {
 	content: string;
 };
 export function oneApiChat<T = any>(chatList: ChatItem[], token:string) {
-	return fetch('http://60.204.142.133:2000/v1/chat/completions', {
+	// return fetch('http://60.204.142.133:2000/v1/chat/completions', {
+	return fetch('http://60.204.142.133:3000/v1/chat/completions', {
 		method: 'POST',
 		headers: {
 			// 'Authorization': '38e6e1173bc045c094e6f0454c4b29ec',

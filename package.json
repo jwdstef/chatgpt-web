@@ -23,16 +23,20 @@
     "common:prepare": "husky install"
   },
   "dependencies": {
+    "@mermaid-js/mermaid-cli": "^10.2.2",
     "@traptitech/markdown-it-katex": "^3.6.0",
     "@vueuse/core": "^9.13.0",
     "highlight.js": "^11.7.0",
     "html2canvas": "^1.4.1",
     "katex": "^0.16.4",
     "markdown-it": "^13.0.1",
+    "mermaid": "link:@/shared/plugins/mermaid",
     "naive-ui": "^2.34.3",
     "pinia": "^2.0.33",
+    "shared": "link:@/shared",
     "vue": "^3.2.47",
     "vue-i18n": "^9.2.2",
+    "vue-mermaid": "^0.0.15",
     "vue-router": "^4.1.6"
   },
   "devDependencies": {

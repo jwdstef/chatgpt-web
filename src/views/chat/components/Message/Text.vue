@@ -7,6 +7,7 @@ import hljs from 'highlight.js'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
 
+
 interface Props {
   inversion?: boolean
   error?: boolean
@@ -15,23 +16,47 @@ interface Props {
   asRawText?: boolean
 }
 
+
+
 const props = defineProps<Props>()
 
 const { isMobile } = useBasicLayout()
 
 const textRef = ref<HTMLElement>()
 
+// const mdi = new MarkdownIt({
+//   linkify: true,
+//   highlight(code, language) {
+// 		if (language === 'mermaid'){
+// 			const html = mermaid.render('mermaid-' + Math.random().toString(36).substr(2, 9), code);
+// 			return `<div class="mermaid">${html}</div>`;
+// 		}
+//
+//     const validLang = !!(language && hljs.getLanguage(language))
+//     if (validLang) {
+//       const lang = language ?? ''
+//       return highlightBlock(hljs.highlight(code, { language: lang }).value, lang)
+//     }
+//     return highlightBlock(hljs.highlightAuto(code).value, '')
+//   },
+// })
+
 const mdi = new MarkdownIt({
-  linkify: true,
-  highlight(code, language) {
-    const validLang = !!(language && hljs.getLanguage(language))
-    if (validLang) {
-      const lang = language ?? ''
-      return highlightBlock(hljs.highlight(code, { language: lang }).value, lang)
-    }
-    return highlightBlock(hljs.highlightAuto(code).value, '')
-  },
-})
+	linkify: true,
+	highlight: function (code, language) {
+		if (language === 'mermaid') {
+			return `<vue-mermaid chart-definition="${code}"></vue-mermaid>`;
+		} else {
+			const validLang = !!(language && hljs.getLanguage(language));
+			if (validLang) {
+				const lang = language ?? '';
+				return highlightBlock(hljs.highlight(code, { language: lang }).value, lang);
+			}
+			return highlightBlock(hljs.highlightAuto(code).value, '');
+		}
+	}
+});
+
 
 mdi.use(mila, { attrs: { target: '_blank', rel: 'noopener' } })
 mdi.use(mdKatex, { blockClass: 'katexmath-block rounded-md p-[10px]', errorColor: ' #cc0000' })

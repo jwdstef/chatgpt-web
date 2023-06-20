@@ -30,6 +30,8 @@ const chatStore = useChatStore()
 
 useCopyCode()
 
+
+
 const { isMobile } = useBasicLayout()
 const { addChat, updateChat, updateChatSome, getChatByUuidAndIndex } = useChat()
 const { scrollRef, scrollToBottom, scrollToBottomIfAtBottom } = useScroll()
@@ -84,6 +86,8 @@ window.postMessage = function (message) {
 function handleSubmit() {
   onConversation()
 }
+
+
 
 function sendMessage(showData:string, sendData:string, token:string) {
 	if (loading.value || sendData.trim() === '') {
@@ -140,6 +144,27 @@ function sendMessage(showData:string, sendData:string, token:string) {
 					}
 					lastText = ''
 					useCopyCode()
+
+					// 查找所有 class 为 mermaid 的元素
+					const mermaidElements = document.querySelectorAll('.mermaid');
+					alert(mermaidElements.length)
+					// // 循环处理每个 mermaid 元素
+					mermaidElements.forEach((element) => {
+					// 	// 获取元素的 data-diagram 属性中的 Mermaid 代码
+						const diagram:string|any = element.getAttribute('data-diagram');
+						alert(diagram)
+						alert(element.id)
+					// 	// 生成图表
+						mermaid.mermaidAPI.render(element.id, diagram, (svg) => {
+							alert(1)
+							// // 将生成的 SVG 添加到元素中
+							// element.innerHTML = svg;
+							//
+							// // 删除 class 为 mermaid 的元素的 mermaid class
+							// element.classList.remove('mermaid');
+						});
+					});
+
 					loading.value = false
 					return;
 				}
@@ -223,24 +248,31 @@ function sendMessage(showData:string, sendData:string, token:string) {
 const contextList: { role: string; content: string }[] = []
 
 function onConversation() {
-	window.sendDataToJava({
-		request: JSON.stringify({key:'query-server-config'}),
-		persistent:false,
-		onSuccess: function(responseData) {
-			let token = JSON.parse(responseData).token
-			if (!token) {
-				visible.value  = true
-				return
-			}
+	// window.sendDataToJava({
+	// 	request: JSON.stringify({key:'query-server-config'}),
+	// 	persistent:false,
+	// 	onSuccess: function(responseData) {
+	// 		let token = JSON.parse(responseData).token
+	// 		if (!token) {
+	// 			visible.value  = true
+	// 			return
+	// 		}
+	// 		let ask_prompt = prompt.value
+	// 		prompt.value = ''.trim()
+	// 		sendMessage(ask_prompt, ask_prompt, token)
+	//
+	// 	},
+	// 	onFailure: function(error_code, error_message) {
+	// 		alert("失败：[" + error_code + "]" + error_message);
+	// 	}
+	// });
+
+
+
 			let ask_prompt = prompt.value
 			prompt.value = ''.trim()
+			let token = 'sk-Xty8JLIpzKKQlUDj57C4E76716A8499bBc51D56fAb70981b'
 			sendMessage(ask_prompt, ask_prompt, token)
-
-		},
-		onFailure: function(error_code, error_message) {
-			alert("失败：[" + error_code + "]" + error_message);
-		}
-	});
 
 }
 function onRegenerate(index: number) {
@@ -423,6 +455,7 @@ onUnmounted(() => {
   if (loading.value)
     controller.abort()
 })
+
 </script>
 
 <template>
